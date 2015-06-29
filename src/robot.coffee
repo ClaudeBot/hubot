@@ -46,6 +46,7 @@ class Robot
     @adapter   = null
     @Response  = Response
     @commands  = []
+    @documentation = []
     @listeners = []
     @logger    = new Log process.env.HUBOT_LOG_LEVEL or 'info'
     @pingIntervalId = null
@@ -425,6 +426,7 @@ class Robot
         cleanedLine = line[2..line.length].replace(/^hubot/i, @name).trim()
         scriptDocumentation.commands.push cleanedLine
         @commands.push cleanedLine
+    @documentation = scriptDocumentation
 
   # Public: A helper send function which delegates to the adapter's send
   # function.
