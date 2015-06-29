@@ -1,3 +1,4 @@
+Async          = require 'async'
 Fs             = require 'fs'
 Log            = require 'log'
 Path           = require 'path'
@@ -45,6 +46,7 @@ class Robot
     @alias     = false
     @adapter   = null
     @Response  = Response
+    @filters   = []
     @commands  = []
     @listeners = []
     @logger    = new Log process.env.HUBOT_LOG_LEVEL or 'info'
@@ -67,6 +69,30 @@ class Robot
     @onUncaughtException = (err) =>
       @emit 'error', err
     process.on 'uncaughtException', @onUncaughtException
+
+  # Public: Adds a filter / middleware that is called when `send` is fired
+  #
+  # fn - The callback function that is called in `send`
+  #
+  # Returns nothing.
+  addFilter: (fn) ->
+    @filters.push fn
+
+  noFilters: ->
+    process.env.HUBOT_MESSAGE_FILTER is true and @filters.length is 0
+
+  applyFiltersToArray: (strings, callback) ->
+    return callback(null, strings) if @noFilters()
+    Async.map strings, @applyFilters, callback
+
+  applyFilters: (string, callback) =>
+    return callback(null, string) if @noFilters()
+    initialTask = [
+      (taskCallback) ->
+        taskCallback(null, string)
+    ]
+    tasks = initialTask.concat @filters
+    Async.waterfall tasks, callback
 
   # Public: Adds a Listener that attempts to match incoming messages based on
   # a Regex.
@@ -434,7 +460,8 @@ class Robot
   #
   # Returns nothing.
   send: (user, strings...) ->
-    @adapter.send user, strings...
+    @applyFiltersToArray strings, (err, results) ->
+      @adapter.send user, results
 
   # Public: A helper reply function which delegates to the adapter's reply
   # function.

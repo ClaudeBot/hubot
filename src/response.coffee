@@ -19,7 +19,8 @@ class Response
   #
   # Returns nothing.
   send: (strings...) ->
-    @robot.adapter.send @envelope, strings...
+    @robot.applyFiltersToArray strings, (err, results) =>
+      @robot.adapter.send @envelope, results
 
   # Public: Posts an emote back to the chat source
   #
